@@ -57,3 +57,43 @@ model = st.selectbox(
 
 # Affichage du modèle sélectionné
 st.write(f"Vous avez sélectionné le modèle : {model}")
+
+
+#Création slider
+import streamlit as st
+import openai
+
+
+# Ajouter un slider pour choisir le nombre maximum de jetons
+max_tokens = st.slider(
+    "Choisissez le nombre maximum de jetons générés :",  # Titre du slider
+    min_value=0,  # Valeur minimale
+    max_value=500,  # Valeur maximale
+    value=100,  # Valeur par défaut
+    step=10  # Incrément du slider
+)
+
+# Afficher le modèle et le nombre de jetons choisis
+st.write(f"Modèle sélectionné : {model}")
+st.write(f"Le nombre maximum de jetons sélectionné est : {max_tokens}")
+
+# Ajouter une zone de texte pour saisir une question
+user_input = st.text_input("Entrez votre question ici :")
+
+# Si une question est saisie, appeler l'API OpenAI
+if st.button("Envoyer"):
+    if user_input:
+        try:
+            # Requête à l'API OpenAI avec les valeurs sélectionnées
+            response = openai.ChatCompletion.create(
+                model=model,  # Modèle sélectionné avec le selectbox
+                messages=[{"role": "user", "content": user_input}],
+                max_tokens=max_tokens,  # Valeur sélectionnée avec le slider
+            )
+            # Afficher la réponse de l'API
+            st.write("Réponse du modèle :")
+            st.write(response["choices"][0]["message"]["content"])
+        except Exception as e:
+            st.error(f"Erreur : {e}")
+    else:
+        st.warning("Veuillez entrer une question avant d'envoyer.")
