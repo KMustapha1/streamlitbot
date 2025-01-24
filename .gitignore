@@ -1,0 +1,8 @@
+# Python venv 
+stenv
+
+ .gitignore
+
+# Ajoutez les dossiers et fichiers à ignorer
+.streamlit/
+secrets.toml
