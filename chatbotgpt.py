@@ -40,3 +40,20 @@ if prompt := st.chat_input("What is up?"):
         )
         response = st.write_stream(stream)
     st.session_state.messages.append({"role": "assistant", "content": response})
+
+#PARTIE 2
+import streamlit as st
+
+# Selectbox pour choisir un modèle GPT
+model = st.selectbox(
+    "Choisissez un modèle GPT :",  # Titre du selectbox
+    [
+        "gpt-3.5-turbo",
+        "gpt-3.5-turbo-instruct",
+        "gpt-3.5-turbo-1106",
+        "gpt-3.5-turbo-0125",
+    ]  # Options disponibles
+)
+
+# Affichage du modèle sélectionné
+st.write(f"Vous avez sélectionné le modèle : {model}")
