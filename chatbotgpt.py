@@ -1,99 +1,76 @@
 import streamlit as st
-from openai import OpenAI
+import openai
 
-st.title("ChatGPT-like clone")
+# Configurez votre clé API depuis les secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-# Set OpenAI API key from Streamlit secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Titre de l'application
+st.title("Clone de ChatGPT avec Streamlit")
 
-# Set a default model
+# Initialiser l'état des sessions
+if "messages" not in st.session_state:
+    st.session_state["messages"] = []
 if "openai_model" not in st.session_state:
     st.session_state["openai_model"] = "gpt-3.5-turbo"
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# **Partie 1 : Sélection du modèle via un selectbox**
+st.sidebar.header("Configuration")
+st.sidebar.subheader("Modèle GPT")
+model = st.sidebar.selectbox(
+    "Choisissez un modèle GPT :",
+    ["gpt-3.5-turbo", "gpt-3.5-turbo-instruct", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-0125"],
+    index=0
+)
+st.session_state["openai_model"] = model
 
-# Display chat messages from history on app rerun
+# Affichage du modèle sélectionné
+st.sidebar.write(f"Modèle sélectionné : {model}")
+
+# **Partie 2 : Slider pour le nombre maximum de jetons**
+st.sidebar.subheader("Paramètres de réponse")
+max_tokens = st.sidebar.slider(
+    "Choisissez le nombre maximum de jetons générés :",
+    min_value=0,
+    max_value=500,
+    value=100,
+    step=10
+)
+
+# **Partie 3 : Chat interactif**
+st.header("Chat interactif")
+
+# Affichage de l'historique des messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Accept user input
-if prompt := st.chat_input("What is up?"):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    # Display user message in chat message container
+# Entrée utilisateur
+if user_input := st.chat_input("Posez une question :"):
+    # Ajouter le message utilisateur à l'historique
+    st.session_state.messages.append({"role": "user", "content": user_input})
+
+    # Affichage du message utilisateur
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.markdown(user_input)
 
- # Display assistant response in chat message container
+    # Réponse du modèle
     with st.chat_message("assistant"):
-        stream = client.chat.completions.create(
-            model=st.session_state["openai_model"],
-            messages=[
-                {"role": m["role"], "content": m["content"]}
-                for m in st.session_state.messages
-            ],
-            stream=True,
-            max_tokens = 200,
-        )
-        response = st.write_stream(stream)
-    st.session_state.messages.append({"role": "assistant", "content": response})
-
-#PARTIE 2
-import streamlit as st
-
-# Selectbox pour choisir un modèle GPT
-model = st.selectbox(
-    "Choisissez un modèle GPT :",  # Titre du selectbox
-    [
-        "gpt-3.5-turbo",
-        "gpt-3.5-turbo-instruct",
-        "gpt-3.5-turbo-1106",
-        "gpt-3.5-turbo-0125",
-    ]  # Options disponibles
-)
-
-# Affichage du modèle sélectionné
-st.write(f"Vous avez sélectionné le modèle : {model}")
-
-
-#Création slider
-import streamlit as st
-import openai
-
-
-# Ajouter un slider pour choisir le nombre maximum de jetons
-max_tokens = st.slider(
-    "Choisissez le nombre maximum de jetons générés :",  # Titre du slider
-    min_value=0,  # Valeur minimale
-    max_value=500,  # Valeur maximale
-    value=100,  # Valeur par défaut
-    step=10  # Incrément du slider
-)
-
-# Afficher le modèle et le nombre de jetons choisis
-st.write(f"Modèle sélectionné : {model}")
-st.write(f"Le nombre maximum de jetons sélectionné est : {max_tokens}")
-
-# Ajouter une zone de texte pour saisir une question
-user_input = st.text_input("Entrez votre question ici :")
-
-# Si une question est saisie, appeler l'API OpenAI
-if st.button("Envoyer"):
-    if user_input:
         try:
-            # Requête à l'API OpenAI avec les valeurs sélectionnées
+            # Envoyer la requête à OpenAI
             response = openai.ChatCompletion.create(
-                model=model,  # Modèle sélectionné avec le selectbox
-                messages=[{"role": "user", "content": user_input}],
-                max_tokens=max_tokens,  # Valeur sélectionnée avec le slider
+                model=st.session_state["openai_model"],
+                messages=[
+                    {"role": msg["role"], "content": msg["content"]}
+                    for msg in st.session_state.messages
+                ],
+                max_tokens=max_tokens,
             )
-            # Afficher la réponse de l'API
-            st.write("Réponse du modèle :")
-            st.write(response["choices"][0]["message"]["content"])
+            response_content = response["choices"][0]["message"]["content"]
+
+            # Ajouter la réponse à l'historique
+            st.session_state.messages.append({"role": "assistant", "content": response_content})
+
+            # Afficher la réponse dans l'interface utilisateur
+            st.markdown(response_content)
         except Exception as e:
-            st.error(f"Erreur : {e}")
-    else:
-        st.warning("Veuillez entrer une question avant d'envoyer.")
+            st.error(f"Erreur lors de la communication avec l'API : {e}")
